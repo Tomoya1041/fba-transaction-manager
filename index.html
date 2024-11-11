@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>取引管理システム</title>
+    <meta charset="UTF-8">
+
+    <!-- ここにFirebaseの設定を追加 -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.js"></script>
+    
+    <!-- Firebase設定 -->
+    <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBMNBCMJXD34W84sFQYZE9XLKzHqq38Hn8",
+        authDomain: "fba-transaction-manager.firebaseapp.com",
+        databaseURL: "https://fba-transaction-manager-default-rtdb.firebaseio.com",
+        projectId: "fba-transaction-manager",
+        storageBucket: "fba-transaction-manager.firebasestorage.app",
+        messagingSenderId: "95663376577",
+        appId: "1:95663376577:web:ec2e88cafbe3853f75ec40"
+    };
+
+    // Firebase初期化
+    firebase.initializeApp(firebaseConfig);
+    </script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab-container {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            margin-right: 4px;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab-button.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            text-align: center;
+            background: white;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        .editable {
+            background-color: #fff;
+            border: 1px solid transparent;
+            padding: 5px;
+            min-width: 100px;
+        }
+
+        .editable:hover {
+            border-color: #4CAF50;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .summary {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 4px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* アコーディオン関連のスタイル */
+.accordion-container {
+    margin-top: 20px;
+}
+
+.accordion-item {
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+}
+
+.accordion-header {
+    background: #f4f4f4;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.accordion-header:hover {
+    background: #e8e8e8;
+}
+
+.accordion-content {
+    display: none;
+    padding: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.accordion-content.active {
+    display: block;
+}
+
+/* 月間集計のスタイル */
+.monthly-summary {
+    background: #f9f9f9;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+}
+
+/* 取引グループのスタイル */
+.transaction-group {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #fff;
+    border-radius: 4px;
+}
+
+.transaction-group h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+/* タブの改善スタイル */
+.tab-container {
+    display: flex;
+    gap: 5px;
+    padding-bottom: 2px;
+}
+
+.tab-content {
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+    padding: 20px;
+}
+    </style>
+</head>
+<body>
+    <div class="tab-container">
+        <button class="tab-button active" onclick="showTab('input')">データ入力</button>
+        <button class="tab-button" onclick="showTab('saved')">保存データ</button>
+        <button class="tab-button" onclick="showTab('history')">履歴</button>
+    </div>
+    
+    <div id="input" class="tab-content active">
+        <div class="upload-section">
+            <input type="file" id="csvUpload" accept=".csv">
+            <button class="btn" onclick="executeCsvUpload()">実行</button>
+            <p>CSVファイルをアップロードして実行ボタンを押してください</p>
+        </div>
+    
+        <div class="controls">
+            <button class="btn" onclick="addNewRow()">行を追加</button>
+            <button class="btn" onclick="saveData()">データを保存</button>
+        </div>
+
+        <table id="transactionTable">
+            <thead>
+                <tr>
+                    <th>お取引日</th>
+                    <th>取引内容</th>
+                    <th>支出</th>
+                    <th>入金</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="transactionBody"></tbody>
+        </table>
+
+        <div class="summary" id="summary">
+            <h3>損益計算</h3>
+            <p>総支出: <span id="totalExpense">0</span>円</p>
+            <p>総収入: <span id="totalIncome">0</span>円</p>
+            <p>収支差額: <span id="balance">0</span>円</p>
+        </div>
+    </div>
+
+    <div id="saved" class="tab-content">
+        <h2>保存データ</h2>
+        <div id="savedContent" class="accordion-container"></div>
+    </div>
+    
+    <div id="history" class="tab-content">
+        <h2>取引履歴</h2>
+        <div id="historyContent" class="accordion-container"></div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+    <script src="script.js"></script>
+</body>
+</html>
